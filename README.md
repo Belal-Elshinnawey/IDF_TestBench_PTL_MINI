@@ -1,17 +1,16 @@
-# _Sample project_
+# _Test Bench for PTL Nodes Mini Version_
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+This is a test bench for ESP32 Device using IDF, it focuses mainly on IR sensors.
 
 
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+## How to use
+1- Download ESP-IDF framework
+2- Connect your ESP32, and choose the Serial port in "idf.portWin" in .vscode or use the VSCode Extension
+3- Build, Flash and Monitor the target board.
 
-## Example folder contents
+## Project folder contents
 
 The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
 
@@ -23,6 +22,8 @@ Below is short explanation of remaining files in the project folder.
 
 ```
 ├── CMakeLists.txt
+├── Components
+│   ├── led_strip
 ├── main
 │   ├── CMakeLists.txt
 │   └── main.c
