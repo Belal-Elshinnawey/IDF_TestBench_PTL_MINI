@@ -153,7 +153,7 @@ fixed point precision: 16 bits
 
 */
 
-#define FILTER_TAP_NUM 47
+#define FILTER_TAP_NUM 48
 static int filter_taps[FILTER_TAP_NUM] = {
   151,
   80,
@@ -448,11 +448,25 @@ typedef struct{
 } FIRFilter;
 
 static FIRFilter fir0;
+static FIRFilter fir0_Move_avg_d1;
+static FIRFilter fir0_Move_avg_d2;
 static FIRFilter fir3;
+static FIRFilter fir3_Move_avg_d1;
+static FIRFilter fir3_Move_avg_d2;
 static FIRFilter fir4;
+static FIRFilter fir4_Move_avg_d1;
+static FIRFilter fir4_Move_avg_d2;
 static FIRFilter fir5;
+static FIRFilter fir5_Move_avg_d1;
+static FIRFilter fir5_Move_avg_d2;
 static FIRFilter fir6;
+static FIRFilter fir6_Move_avg_d1;
+static FIRFilter fir6_Move_avg_d2;
 static FIRFilter fir7;
+static FIRFilter fir7_Move_avg_d1;
+static FIRFilter fir7_Move_avg_d2;
+
+
 
 
 //function to initialise the circular buffer value
@@ -513,6 +527,41 @@ int32_t FIRFilter_calc(FIRFilter *fir, int32_t inputVal){
 
 }
 
+int32_t moving_avg(FIRFilter *fir, int32_t inputVal){
+
+    int32_t out=0;
+
+    /*Implementing CIRCULAR BUFER*/
+    //Store the latest sample=inputVal into the circular buffer
+    fir->buff[fir->buffIndex]=inputVal;
+
+    //Increase the buffer index. retrun to zero if it reach the end of the index (circular buffer)
+    fir->buffIndex++;
+    uint8_t sumIndex=fir->buffIndex;
+    if(fir->buffIndex==FILTER_TAP_NUM){
+        fir->buffIndex=0;
+    }
+
+    //Compute the filtered sample with convolution
+    fir->out=0;
+    int32_t acc  = 0;
+    for(int i=0;i<FILTER_TAP_NUM;i++){
+
+        if(sumIndex>0){
+            sumIndex--;
+        }
+        else{
+            sumIndex=FILTER_TAP_NUM-1;
+        }
+        acc = acc +((fir->buff[sumIndex])>>1);
+        //The convolution process: Multyply the impulse response with the SHIFTED input sample and add it to the output
+    }
+    fir->out= (acc<<1)/FILTER_TAP_NUM;
+    //return the filtered data
+    return out;
+
+}
+
 
 
 void app_main(void)
@@ -553,18 +602,24 @@ void app_main(void)
     FIRFilter_init(&fir6);
     FIRFilter_init(&fir7);
     int32_t out0=0;
-    int32_t out3=0;
-    int32_t out4=0;
-    int32_t out5=0;
-    int32_t out6=0;
-    int32_t out7=0;
-    int32_t outOld0=0;
     int32_t outRateOld0=0;
-
-
-    int32_t avg1 =0;
-    int32_t avg2 = 0;    
-
+    int32_t outOld0 = 0;
+    int32_t out3=0;
+    int32_t outOld3 = 0;
+    int32_t outRateOld3=0;
+    int32_t out4=0;
+    int32_t outOld4 = 0;
+    int32_t outRateOld4=0;
+    int32_t out5=0;
+    int32_t outOld5 = 0;
+    int32_t outRateOld5=0;
+    int32_t out6=0;
+    int32_t outOld6 = 0;
+    int32_t outRateOld6=0;
+    int32_t out7=0;
+    int32_t outOld7 = 0;
+    int32_t outRateOld7=0;
+    
     continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
     adc_digi_start();
     
@@ -631,11 +686,41 @@ void app_main(void)
             }
             //avg1 = (out0 + out3 + out6)/3;
             //avg2 = (out5 + out4 + out7)/3;
-            
+            outRateOld0 = fir0_Move_avg_d1.out;
+            moving_avg(&fir0_Move_avg_d1, ( out0 - outOld0));
+            moving_avg(&fir0_Move_avg_d2, ( fir0_Move_avg_d1.out - outRateOld0));
+
+            outRateOld3 = fir3_Move_avg_d1.out;
+            moving_avg(&fir3_Move_avg_d1, ( out3 - outOld3));
+            moving_avg(&fir3_Move_avg_d2, ( fir3_Move_avg_d1.out - outRateOld3));
+
+            outRateOld4 = fir4_Move_avg_d1.out;
+            moving_avg(&fir4_Move_avg_d1, ( out4 - outOld4));
+            moving_avg(&fir4_Move_avg_d2, ( fir4_Move_avg_d1.out - outRateOld4));
+
+            outRateOld5 = fir5_Move_avg_d1.out;
+            moving_avg(&fir5_Move_avg_d1, ( out5 - outOld5));
+            moving_avg(&fir5_Move_avg_d2, ( fir5_Move_avg_d1.out - outRateOld5));
+
+            outRateOld6 = fir6_Move_avg_d1.out;
+            moving_avg(&fir6_Move_avg_d1, ( out6 - outOld6));
+            moving_avg(&fir6_Move_avg_d2, ( fir6_Move_avg_d1.out - outRateOld6));
+
+            outRateOld7 = fir7_Move_avg_d1.out;
+            moving_avg(&fir7_Move_avg_d1, ( out7 - outOld7));
+            moving_avg(&fir7_Move_avg_d2, ( fir7_Move_avg_d1.out - outRateOld7));
+
+
             //printf("lowerlimit:0,Channel0:%d,Channel3:%d,Channel4:%d,Channel5:%d,Channel6:%d,Channel7:%d,upperlimit:4500000\n",out0, out3, out6, out5, out4, out7);
-            printf("lowerlimit:0,Channel0:%d,Channel0Rate:%d,Channel0Rate2:%d,upperlimit:4500000\n",out3,( out3 - outOld0)<<4, ( out3 - outOld0 -outRateOld0)<<4);
-            outRateOld0 = out3 - outOld0;
-            outOld0 = out3;
+            //printf("lowerlimit:-200000,Channel0:%d,Channel3:%d,Channel4:%d,Channel5:%d,Channel6:%d,Channel7:%d,upperlimit:200000\n",fir0_Move_avg_d1.out, fir3_Move_avg_d1.out, fir6_Move_avg_d1.out, fir5_Move_avg_d1.out, fir4_Move_avg_d1.out, fir7_Move_avg_d1.out);
+            printf("lowerlimit:-4000,Channel0:%d,Channel3:%d,Channel4:%d,Channel5:%d,Channel6:%d,Channel7:%d,upperlimit:2000\n",fir0_Move_avg_d2.out, fir3_Move_avg_d2.out, fir6_Move_avg_d2.out, fir5_Move_avg_d2.out, fir4_Move_avg_d2.out, fir7_Move_avg_d2.out);
+            //printf("lowerlimit:0,Channel0:%d,Channel0Rate:%d,Channel0Rate2:%d,upperlimit:4500000\n",out3,fir3_Move_avg_d1.out<<4,fir3_Move_avg_d2.out<<8);
+            outOld0 = out0;
+            outOld3 = out3;
+            outOld4 = out4;
+            outOld5 = out5;
+            outOld6 = out6;
+            outOld7 = out7;
             //printf("AVG1: %d, AVG2: %d\n",avg1, avg2);
             //avg1 = 99 * avg1 / (36+12);
             //avg2 = 99 * avg2 / (36+12);
